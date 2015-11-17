@@ -35,6 +35,7 @@ namespace WaterSounds
                 waterSource.rolloffMode = AudioRolloffMode.Logarithmic;
                 waterSource.minDistance = 0.5f;
                 waterSource.maxDistance = 1f;
+                waterSource.time = UnityEngine.Random.Range(0, waterSource.clip.length);
 
                 GameEvents.onGamePause.Add(Pause);
                 GameEvents.onGameUnpause.Add(Unpause);
@@ -52,7 +53,7 @@ namespace WaterSounds
         {
             _paused = true;
             if (waterSource != null && waterSource.isPlaying)
-                waterSource.Stop();
+                waterSource.Pause();
         }
 
         public void Unpause()
@@ -105,7 +106,7 @@ namespace WaterSounds
                     else if (FlightGlobals.ActiveVessel.srf_velocity.magnitude < 10) err = "Too fast: " + FlightGlobals.ActiveVessel.srf_velocity.magnitude;
                     else if (!_inWater) err = "Not in water";
                     Debug.Log("Water sounds stopping: " + err);*/
-                    waterSource.Stop();
+                    waterSource.Pause();
                 }
             }
             catch (Exception ex)
