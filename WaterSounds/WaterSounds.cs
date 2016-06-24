@@ -13,29 +13,45 @@ namespace WaterSounds
 
         [KSPField]
         public string waterSoundFile = "WaterSounds/Sounds/WaterIdle";
-        public AudioSource waterSource;
+        [KSPField]
+        public string underwaterSoundFile = "WaterSounds/Sounds/UnderwaterAmbiance";
+        [KSPField]
+        public string diveSoundFile = "WaterSounds/Sounds/Submerge";
+        [KSPField]
+        public string surfaceSoundFile = "WaterSounds/Sounds/Emerge";
+        [KSPField]
+        public float pitchRange = 0.3f;
+        public AudioSource waterSound;
+        public AudioSource underwaterSound;
+        public AudioSource diveSound;
+        public AudioSource surfaceSound;
         private bool _inWater = false;
+        private bool _wasUnderWater = false;
         private bool _paused = false;
-        private bool _enabled = true;
+        private bool _validWaterSound = true;
+        private bool _validUnderwaterSound = true;
+        private bool _validDiveSound = true;
+        private bool _validSurfaceSound = true;
 
         public void Start()
         {
             try
             {
-                waterSource = gameObject.AddComponent<AudioSource>();
-                waterSource.clip = GameDatabase.Instance.GetAudioClip(waterSoundFile);
-                if (waterSource.clip == null)
-                {
-                    _enabled = false;
-                    return;
-                }
-                waterSource.loop = true;
-                waterSource.volume = GameSettings.AMBIENCE_VOLUME;
-                waterSource.dopplerLevel = 0f;
-                waterSource.rolloffMode = AudioRolloffMode.Logarithmic;
-                waterSource.minDistance = 0.5f;
-                waterSource.maxDistance = 1f;
-                waterSource.time = UnityEngine.Random.Range(0, waterSource.clip.length);
+                waterSound = Utils.InitAudioSource(waterSoundFile, gameObject, GameSettings.AMBIENCE_VOLUME, true, true);
+                if (waterSound.clip == null)
+                    _validWaterSound = false;
+
+                underwaterSound = Utils.InitAudioSource(underwaterSoundFile, gameObject, GameSettings.AMBIENCE_VOLUME, true, true);
+                if (underwaterSound.clip == null)
+                    _validUnderwaterSound = false;
+
+                diveSound = Utils.InitAudioSource(diveSoundFile, gameObject, GameSettings.SHIP_VOLUME, false, false);
+                if (diveSound.clip == null)
+                    _validDiveSound = false;
+
+                surfaceSound = Utils.InitAudioSource(surfaceSoundFile, gameObject, GameSettings.SHIP_VOLUME, false, false);
+                if (diveSound.clip == null)
+                    _validSurfaceSound = false;
 
                 GameEvents.onGamePause.Add(Pause);
                 GameEvents.onGameUnpause.Add(Unpause);
@@ -45,15 +61,15 @@ namespace WaterSounds
             catch (Exception ex)
             {
                 Debug.LogError("[WaterSounds] Startup error: " + ex.Message + "\n");
-                _enabled = false;
+                _validWaterSound = false;
             }
         }
 
         public void Pause()
         {
             _paused = true;
-            if (waterSource != null && waterSource.isPlaying)
-                waterSource.Pause();
+            if (waterSound != null && waterSound.isPlaying)
+                waterSound.Pause();
         }
 
         public void Unpause()
@@ -73,8 +89,8 @@ namespace WaterSounds
 
         public void Destroy()
         {
-            if (waterSource != null)
-            waterSource.Stop();
+            if (waterSound != null)
+            waterSound.Stop();
             GameEvents.onGamePause.Remove(Pause);
             GameEvents.onGameUnpause.Remove(Unpause);
             GameEvents.onVesselSituationChange.Remove(VesselSituationChange);
@@ -85,34 +101,73 @@ namespace WaterSounds
         {
             try
             {
-                if (waterSource == null)
-                    _enabled = false;
-                if (!_enabled)
-                    return;
-                if (_inWater && !_paused && FlightGlobals.ActiveVessel != null &&
-                    FlightGlobals.ActiveVessel.srf_velocity.magnitude < 10)
-                {
-                    gameObject.transform.position = FlightGlobals.ActiveVessel.mainBody.GetWorldSurfacePosition(
-                        FlightGlobals.ActiveVessel.latitude, FlightGlobals.ActiveVessel.longitude, 0);
+                FlightCamera flightCamera = FlightCamera.fetch;
+                bool underwater = flightCamera.cameraAlt < 0;
+                if (underwaterSound == null)
+                    _validUnderwaterSound = false;
+                if (waterSound == null)
+                    _validWaterSound = false;
 
-                    if (!waterSource.isPlaying)
-                        waterSource.Play();
+                if (underwater)
+                {
+                    if (!_wasUnderWater && _validDiveSound)
+                    {
+                        diveSound.pitch = UnityEngine.Random.Range(1 - pitchRange, 1 + pitchRange);
+                        diveSound.Play();
+                        _wasUnderWater = true;
+                    }
+                }
+                else if (_wasUnderWater && _validSurfaceSound)
+                {
+                    surfaceSound.pitch = UnityEngine.Random.Range(1 - pitchRange, 1 + pitchRange);
+                    surfaceSound.Play();
+                    _wasUnderWater = false;
+                }
+
+                if (underwater)
+                {
+                    if (_validWaterSound)
+                        waterSound.Pause();
+
+                    if (!_validUnderwaterSound)
+                        return;
+
+                    if (!underwaterSound.isPlaying)
+                        underwaterSound.Play();
                 }
                 else
                 {
-                    /*string err = "";
-                    if (FlightGlobals.ActiveVessel == null) err = "Active vessel null";
-                    else if (_paused) err = "Paused";
-                    else if (FlightGlobals.ActiveVessel.srf_velocity.magnitude < 10) err = "Too fast: " + FlightGlobals.ActiveVessel.srf_velocity.magnitude;
-                    else if (!_inWater) err = "Not in water";
-                    Debug.Log("Water sounds stopping: " + err);*/
-                    waterSource.Pause();
+                    if (_validUnderwaterSound)
+                        underwaterSound.Pause();
+
+                    if (!_validWaterSound)
+                        return;
+
+                    if (_inWater && !_paused && FlightGlobals.ActiveVessel != null &&
+                        FlightGlobals.ActiveVessel.srf_velocity.magnitude < 10)
+                    {
+                        gameObject.transform.position = FlightGlobals.ActiveVessel.mainBody.GetWorldSurfacePosition(
+                            FlightGlobals.ActiveVessel.latitude, FlightGlobals.ActiveVessel.longitude, 0);
+
+                        if (!waterSound.isPlaying)
+                            waterSound.Play();
+                    }
+                    else
+                    {
+                        /*string err = "";
+                        if (FlightGlobals.ActiveVessel == null) err = "Active vessel null";
+                        else if (_paused) err = "Paused";
+                        else if (FlightGlobals.ActiveVessel.srf_velocity.magnitude < 10) err = "Too fast: " + FlightGlobals.ActiveVessel.srf_velocity.magnitude;
+                        else if (!_inWater) err = "Not in water";
+                        Debug.Log("Water sounds stopping: " + err);*/
+                        waterSound.Pause();
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Debug.LogError("[WaterSounds] Update error: " + ex.Message + "\n");
-                _enabled = false;
+                _validWaterSound = false;
             }
         }
     }

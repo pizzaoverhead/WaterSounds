@@ -36,6 +36,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Squad binaries\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="KSPUtil">
+      <HintPath>..\..\Squad binaries\KSPUtil.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -48,14 +51,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Utils.cs" />
     <Compile Include="WaterSounds.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /y "$(TargetPath)" "C:\Games\Kerbal Space Program\GameData\WaterSounds\Plugins\"
+    <PostBuildEvent>"C:\dev\KSP\pdb2mdb\pdb2mdb.exe" "$(TargetPath)"
+xcopy /y "$(TargetPath)" "C:\Games\Kerbal Space Program\GameData\$(ProjectName)\Plugins\"
 xcopy /y "$(TargetDir)$(TargetName).pdb" "C:\Games\Kerbal Space Program\GameData\$(ProjectName)\Plugins\"
-call "C:\Games\Kerbal Space Program\GameData\$(ProjectName)\Plugins\GenerateMonoDebug.bat"  C:\Games\Kerbal~1\GameData\$(ProjectName)\Plugins\
+xcopy /y "$(TargetDir)$(TargetName).dll.mdb" "C:\Games\Kerbal Space Program\GameData\$(ProjectName)\Plugins\"
 taskkill /IM tail.exe /F 2&gt;&amp;1 | exit /B 0</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
