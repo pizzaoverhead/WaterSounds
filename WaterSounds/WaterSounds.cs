@@ -70,6 +70,8 @@ namespace WaterSounds
             _paused = true;
             if (waterSound != null && waterSound.isPlaying)
                 waterSound.Pause();
+            if (underwaterSound != null && underwaterSound.isPlaying)
+                underwaterSound.Pause();
         }
 
         public void Unpause()
@@ -101,6 +103,12 @@ namespace WaterSounds
         {
             try
             {
+                // On loading an existing flight, the FlightCamera starts at an altitude of -600000f
+                // and moves to its correct level over the course of a couple of frames.
+                // Wait until it's set up so we don't play unnecessary sounds.
+                if (!FlightGlobals.ready)
+                    return;
+
                 FlightCamera flightCamera = FlightCamera.fetch;
                 bool underwater = flightCamera.cameraAlt < 0;
                 if (underwaterSound == null)
