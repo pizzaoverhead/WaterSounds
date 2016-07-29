@@ -197,8 +197,8 @@ public class Debug_AutoLoadQuicksaveOnStartup : UnityEngine.MonoBehaviour
             {
                 FlightDriver.StartAndFocusVessel(game, game.flightState.activeVesselIdx);
             }
-            CheatOptions.InfiniteFuel = true;
-            CheatOptions.InfiniteRCS = true;
+            CheatOptions.InfinitePropellant = true;
+            CheatOptions.InfiniteElectricity = true;
         }
     }
 }
